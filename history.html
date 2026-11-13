@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shift History | Uber Tracker</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <header>
+    <h2>Full Shift Ledger</h2>
+  </header>
+
+  <div class="container">
+    <div class="card" style="overflow-x:auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Driver</th>
+            <th>Gross</th>
+            <th>Petrol</th>
+            <th>Other</th>
+            <th>Net</th>
+          </tr>
+        </thead>
+        <tbody id="ledger-body">
+          <tr><td colspan="6" style="text-align:center; color:#94a3b8; padding:16px;">Loading history...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <nav>
+    <a href="index.html">Dashboard</a>
+    <a href="log-shift.html">+ Log Shift</a>
+    <a href="history.html" class="active">History</a>
+    <a href="drivers.html">Drivers</a>
+  </nav>
+
+  <script src="app.js"></script>
+  <script>
+    async function loadHistory() {
+      const logs = await getLogs();
+      const rows = logs.map(l => {
+        const gross = Number(l.app_earnings || 0) + Number(l.cash_collected || 0);
+        const net = gross - Number(l.petrol_cost || 0) - Number(l.other_expenses || 0);
+        return `<tr>
+          <td>${l.shift_date}</td>
+          <td>${l.driver_name}</td>
+          <td>${formatZAR(gross)}</td>
+          <td class="red">${formatZAR(l.petrol_cost)}</td>
+          <td>${formatZAR(l.other_expenses)}</td>
+          <td class="${net >= 0 ? 'green' : 'red'}"><strong>${formatZAR(net)}</strong></td>
+        </tr>`;
+      }).join('');
+
+      document.getElementById('ledger-body').innerHTML = rows || '<tr><td colspan="6" style="text-align:center; color:#94a3b8; padding:16px;">No entries logged yet.</td></tr>';
+    }
+    loadHistory();
+  </script>
+</body>
+</html>
