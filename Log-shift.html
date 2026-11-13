@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Log Shift | Uber Tracker</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <header>
+    <h2>Log Daily Shift</h2>
+  </header>
+
+  <div class="container">
+    <form class="card" id="shift-form">
+      <label>Date</label>
+      <input type="date" id="shift_date" required />
+
+      <label>Driver</label>
+      <select id="driver_name" required>
+        <option value="Brother (Mon-Fri)">Brother (Mon–Fri)</option>
+        <option value="Terry (Sat-Sun)">Terry (Sat–Sun)</option>
+      </select>
+
+      <label>Uber App Fares (R)</label>
+      <input type="number" step="0.01" id="app_earnings" placeholder="0.00" required />
+
+      <label>Cash Collected from Riders (R)</label>
+      <input type="number" step="0.01" id="cash_collected" placeholder="0.00" />
+
+      <label>Petrol Spent (R)</label>
+      <input type="number" step="0.01" id="petrol_cost" placeholder="0.00" />
+
+      <label>Other Business Expenses - Data / Carwash / Tolls (R)</label>
+      <input type="number" step="0.01" id="other_expenses" placeholder="0.00" />
+
+      <label>Notes (Optional)</label>
+      <input type="text" id="notes" placeholder="e.g., Full tank fill up at Engen" />
+
+      <button type="submit">Save Shift Entry</button>
+    </form>
+  </div>
+
+  <nav>
+    <a href="index.html">Dashboard</a>
+    <a href="log-shift.html" class="active">+ Log Shift</a>
+    <a href="history.html">History</a>
+    <a href="drivers.html">Drivers</a>
+  </nav>
+
+  <script src="app.js"></script>
+  <script>
+    // Automatically set today's date on load
+    document.getElementById('shift_date').valueAsDate = new Date();
+
+    document.getElementById('shift-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const entry = {
+        shift_date: document.getElementById('shift_date').value,
+        driver_name: document.getElementById('driver_name').value,
+        app_earnings: Number(document.getElementById('app_earnings').value || 0),
+        cash_collected: Number(document.getElementById('cash_collected').value || 0),
+        petrol_cost: Number(document.getElementById('petrol_cost').value || 0),
+        other_expenses: Number(document.getElementById('other_expenses').value || 0),
+        notes: document.getElementById('notes').value
+      };
+
+      const ok = await saveLog(entry);
+      if (ok) {
+        alert('Shift saved successfully!');
+        window.location.href = 'index.html';
+      }
+    });
+  </script>
+</body>
+</html>
