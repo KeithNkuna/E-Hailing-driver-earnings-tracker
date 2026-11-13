@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fleet Dashboard | Uber Tracker</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <header>
+    <h2>Fleet Overview</h2>
+  </header>
+
+  <div class="container">
+    <div class="filter-bar">
+      <button class="filter-btn active" onclick="loadDashboard('day', this)">Today</button>
+      <button class="filter-btn" onclick="loadDashboard('week', this)">7 Days</button>
+      <button class="filter-btn" onclick="loadDashboard('month', this)">This Month</button>
+      <button class="filter-btn" onclick="loadDashboard('all', this)">All Time</button>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="card">
+        <h3>Gross Earnings</h3>
+        <div class="val green" id="kpi-gross">R 0.00</div>
+      </div>
+      <div class="card">
+        <h3>Petrol Spent</h3>
+        <div class="val red" id="kpi-petrol">R 0.00</div>
+      </div>
+      <div class="card">
+        <h3>Other Expenses</h3>
+        <div class="val red" id="kpi-expenses">R 0.00</div>
+      </div>
+      <div class="card">
+        <h3>Net Fleet Profit</h3>
+        <div class="val" id="kpi-net">R 0.00</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Recent Shifts</h3>
+      <div id="recent-list">Loading shifts...</div>
+    </div>
+  </div>
+
+  <nav>
+    <a href="index.html" class="active">Dashboard</a>
+    <a href="log-shift.html">+ Log Shift</a>
+    <a href="history.html">History</a>
+    <a href="drivers.html">Drivers</a>
+  </nav>
+
+  <script src="app.js"></script>
+  <script>
+    async function loadDashboard(timeframe = 'day', btn = null) {
+      if (btn) {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      }
+
+      const allLogs = await getLogs();
+      const filtered = filterByTimeframe(allLogs, timeframe);
+
+      let gross = 0, petrol = 0, other = 0;
+      filtered.forEach(log => {
+        gross += Number(log.app_earnings || 0) + Number(log.cash_collected || 0);
+        petrol += Number(log.petrol_cost || 0);
+        other += Number(log.other_expenses || 0);
+      });
+
+      const net = gross - petrol - other;
+      document.getElementById('kpi-gross').textContent = formatZAR(gross);
+      document.getElementById('kpi-petrol').textContent = formatZAR(petrol);
+      document.getElementById('kpi-expenses').textContent = formatZAR(other);
+
+      const netEl = document.getElementById('kpi-net');
+      netEl.textContent = formatZAR(net);
+      netEl.className = 'val ' + (net >= 0 ? 'green' : 'red');
+
+      const recentHtml = filtered.slice(0, 5).map(l => {
+        const shiftGross = Number(l.app_earnings || 0) + Number(l.cash_collected || 0);
+        const shiftNet = shiftGross - Number(l.petrol_cost || 0) - Number(l.other_expenses || 0);
+        return `<div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #334155;">
+          <div>
+            <strong>${l.driver_name}</strong>
+            <div style="color:#94a3b8; font-size:11px; margin-top:2px;">${l.shift_date}</div>
+          </div>
+          <div class="${shiftNet >= 0 ? 'green' : 'red'}" style="font-weight:700;">${formatZAR(shiftNet)}</div>
+        </div>`;
+      }).join('');
+
+      document.getElementById('recent-list').innerHTML = recentHtml || '<p style="color:#94a3b8; font-size:13px; text-align:center; padding:10px 0;">No shifts logged for this period.</p>';
+    }
+
+    loadDashboard('all');
+  </script>
+</body>
+</html>
