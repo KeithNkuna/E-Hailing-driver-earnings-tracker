@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Driver Reconciliation | Uber Tracker</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <header>
+    <h2>Driver & Account Split</h2>
+  </header>
+
+  <div class="container" id="driver-cards">
+    <div class="card" style="text-align:center; color:#94a3b8;">Loading driver summaries...</div>
+  </div>
+
+  <nav>
+    <a href="index.html">Dashboard</a>
+    <a href="log-shift.html">+ Log Shift</a>
+    <a href="history.html">History</a>
+    <a href="drivers.html" class="active">Drivers</a>
+  </nav>
+
+  <script src="app.js"></script>
+  <script>
+    async function loadDriverSplit() {
+      const logs = await getLogs();
+      const summary = {};
+
+      logs.forEach(l => {
+        const name = l.driver_name || 'Unknown Driver';
+        if (!summary[name]) summary[name] = { app: 0, cash: 0, petrol: 0, other: 0 };
+        summary[name].app += Number(l.app_earnings || 0);
+        summary[name].cash += Number(l.cash_collected || 0);
+        summary[name].petrol += Number(l.petrol_cost || 0);
+        summary[name].other += Number(l.other_expenses || 0);
+      });
+
+      const html = Object.keys(summary).map(driver => {
+        const d = summary[driver];
+        const net = (d.app + d.cash) - d.petrol - d.other;
+        return `<div class="card">
+          <h2 style="margin-bottom:12px; font-size:16px; color:#f8fafc;">${driver}</h2>
+          <p style="margin:6px 0; font-size:13px; color:#94a3b8;">App Payouts (Bank): <strong style="color:#f8fafc;">${formatZAR(d.app)}</strong></p>
+          <p style="margin:6px 0; font-size:13px; color:#94a3b8;">Cash Collected: <strong style="color:#f8fafc;">${formatZAR(d.cash)}</strong></p>
+          <p style="margin:6px 0; font-size:13px; color:#94a3b8;">Petrol Paid: <span class="red">${formatZAR(d.petrol)}</span></p>
+          <p style="margin:6px 0; font-size:13px; color:#94a3b8;">Other Expenses: <span class="red">${formatZAR(d.other)}</span></p>
+          <hr style="border-color:#334155; margin:12px 0;" />
+          <p style="font-size:14px; color:#94a3b8;">Net Contribution: <strong class="${net >= 0 ? 'green' : 'red'}">${formatZAR(net)}</strong></p>
+        </div>`;
+      }).join('');
+
+      document.getElementById('driver-cards').innerHTML = html || '<div class="card" style="text-align:center; color:#94a3b8;">No driver records found yet. Try logging a shift!</div>';
+    }
+    loadDriverSplit();
+  </script>
+</body>
+</html>
