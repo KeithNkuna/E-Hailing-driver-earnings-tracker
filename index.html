@@ -66,6 +66,16 @@
       <h3>Recent Shifts</h3>
       <div id="recent-list">Loading shifts...</div>
     </div>
+
+    <!-- Owner Driver Management Card -->
+    <div class="card" style="margin-bottom: 80px;">
+      <h3>Manage Drivers</h3>
+      <div style="display:flex; gap:8px; margin-bottom:12px;">
+        <input type="text" id="new-driver-name" placeholder="Enter driver name" style="margin-bottom:0; flex:1;" />
+        <button type="button" onclick="handleAddDriver()" style="width:auto; padding:0 18px; margin-top:0;">Add</button>
+      </div>
+      <div id="driver-list"></div>
+    </div>
   </div>
 
   <nav>
@@ -76,6 +86,41 @@
 
   <script src="app.js"></script>
   <script>
+    // Protect dashboard from non-owner access
+    if (localStorage.getItem('fleet_user_role') !== 'owner') {
+      window.location.href = 'login.html';
+    }
+
+    function renderDrivers() {
+      const drivers = getDrivers();
+      const listEl = document.getElementById('driver-list');
+      if (drivers.length === 0) {
+        listEl.innerHTML = '<p style="color:#94a3b8; font-size:13px; margin:0;">No drivers added yet. Add a name above so they can log in.</p>';
+        return;
+      }
+      listEl.innerHTML = drivers.map(name => `
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid #334155;">
+          <span style="font-size:14px; font-weight:600; color:#f8fafc;">${name}</span>
+          <button type="button" onclick="handleRemoveDriver('${name.replace(/'/g, "\\'")}')" style="width:auto; padding:4px 10px; font-size:12px; background:#ef4444; margin:0;">Remove</button>
+        </div>
+      `).join('');
+    }
+
+    function handleAddDriver() {
+      const input = document.getElementById('new-driver-name');
+      if (addDriver(input.value)) {
+        input.value = '';
+        renderDrivers();
+      }
+    }
+
+    function handleRemoveDriver(name) {
+      if (confirm('Remove ' + name + ' from the login list?')) {
+        removeDriver(name);
+        renderDrivers();
+      }
+    }
+
     function setTankSize() {
       const current = localStorage.getItem(TANK_CAPACITY_KEY) || 950;
       const val = prompt('Enter full tank cost in Rands (e.g., 950):', current);
@@ -137,8 +182,8 @@
         const shiftNet = shiftGross - Number(l.petrol_cost || 0) - Number(l.other_expenses || 0);
         return `<div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #334155;">
           <div>
-            <strong>${l.shift_date}</strong>
-            <div style="color:#94a3b8; font-size:11px; margin-top:2px;">Gross: ${formatZAR(shiftGross)} | Petrol: ${formatZAR(l.petrol_cost)}</div>
+            <strong>${l.driver_name || 'Driver'}</strong>
+            <div style="color:#94a3b8; font-size:11px; margin-top:2px;">${l.shift_date} | Gross: ${formatZAR(shiftGross)}</div>
           </div>
           <div class="${shiftNet >= 0 ? 'green' : 'red'}" style="font-weight:700;">${formatZAR(shiftNet)}</div>
         </div>`;
@@ -147,6 +192,7 @@
       document.getElementById('recent-list').innerHTML = recentHtml || '<p style="color:#94a3b8; font-size:13px; text-align:center; padding:10px 0;">No shifts logged for this period.</p>';
     }
 
+    renderDrivers();
     loadDashboard('all');
   </script>
 </body>
