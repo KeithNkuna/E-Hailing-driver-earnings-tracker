@@ -13,6 +13,26 @@
   </header>
 
   <div class="container">
+    <!-- Smart Fuel Gauge Card -->
+    <div class="card">
+      <div class="fuel-header">
+        <h3 style="margin:0;">Estimated Tank Level</h3>
+        <span id="fuel-pct" class="green" style="font-weight:700; font-size:15px;">0%</span>
+      </div>
+      <div class="gauge-track">
+        <div class="gauge-fill" id="fuel-bar" style="width: 0%;"></div>
+      </div>
+      <div class="gauge-ticks">
+        <span>E (Empty)</span>
+        <span>1/2</span>
+        <span>F (Full)</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; font-size:12px; color:#94a3b8;">
+        <span id="fuel-detail">Est. R 0.00 left (Burn rate: 28%)</span>
+        <a href="#" onclick="setTankSize(); return false;" style="color:#10b981; text-decoration:none; font-weight:600;">Set Full Tank</a>
+      </div>
+    </div>
+
     <div class="filter-bar">
       <button class="filter-btn active" onclick="loadDashboard('day', this)">Today</button>
       <button class="filter-btn" onclick="loadDashboard('week', this)">7 Days</button>
@@ -49,11 +69,19 @@
     <a href="index.html" class="active">Dashboard</a>
     <a href="log-shift.html">+ Log Shift</a>
     <a href="history.html">History</a>
-    <a href="drivers.html">Drivers</a>
   </nav>
 
   <script src="app.js"></script>
   <script>
+    function setTankSize() {
+      const current = localStorage.getItem(TANK_CAPACITY_KEY) || 950;
+      const val = prompt('Enter full tank cost in Rands (e.g., 950):', current);
+      if (val && !isNaN(val) && Number(val) > 0) {
+        localStorage.setItem(TANK_CAPACITY_KEY, Number(val));
+        loadDashboard('all');
+      }
+    }
+
     async function loadDashboard(timeframe = 'day', btn = null) {
       if (btn) {
         document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -61,8 +89,30 @@
       }
 
       const allLogs = await getLogs();
-      const filtered = filterByTimeframe(allLogs, timeframe);
 
+      // Update Smart Fuel Gauge
+      const fuel = estimateFuelStatus(allLogs);
+      const bar = document.getElementById('fuel-bar');
+      const pctEl = document.getElementById('fuel-pct');
+      bar.style.width = fuel.percentage + '%';
+      pctEl.textContent = fuel.percentage + '%';
+
+      if (fuel.percentage <= 20) {
+        bar.style.backgroundColor = '#ef4444';
+        pctEl.className = 'red';
+      } else if (fuel.percentage <= 45) {
+        bar.style.backgroundColor = '#f59e0b';
+        pctEl.style.color = '#f59e0b';
+      } else {
+        bar.style.backgroundColor = '#10b981';
+        pctEl.className = 'green';
+      }
+
+      document.getElementById('fuel-detail').textContent =
+        `Est. ${formatZAR(fuel.remainingZar)} left of ${formatZAR(fuel.fullTankZar)} (Burn: ${fuel.burnRatePercent}%)`;
+
+      // Update KPI Totals
+      const filtered = filterByTimeframe(allLogs, timeframe);
       let gross = 0, petrol = 0, other = 0;
       filtered.forEach(log => {
         gross += Number(log.app_earnings || 0) + Number(log.cash_collected || 0);
@@ -84,8 +134,8 @@
         const shiftNet = shiftGross - Number(l.petrol_cost || 0) - Number(l.other_expenses || 0);
         return `<div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #334155;">
           <div>
-            <strong>${l.driver_name}</strong>
-            <div style="color:#94a3b8; font-size:11px; margin-top:2px;">${l.shift_date}</div>
+            <strong>${l.shift_date}</strong>
+            <div style="color:#94a3b8; font-size:11px; margin-top:2px;">Gross: ${formatZAR(shiftGross)} | Petrol: ${formatZAR(l.petrol_cost)}</div>
           </div>
           <div class="${shiftNet >= 0 ? 'green' : 'red'}" style="font-weight:700;">${formatZAR(shiftNet)}</div>
         </div>`;
