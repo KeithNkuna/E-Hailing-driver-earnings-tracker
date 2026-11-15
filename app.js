@@ -4,6 +4,7 @@ const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY';
 
 const STORAGE_KEY = 'tmn_uber_fleet_logs_v1';
 const TANK_CAPACITY_KEY = 'tmn_tank_capacity_zar';
+const DRIVERS_KEY = 'tmn_fleet_drivers_v1';
 
 // Format South African Rand
 function formatZAR(amount) {
@@ -11,6 +12,27 @@ function formatZAR(amount) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   });
+}
+
+// Manage Dynamic Drivers List
+function getDrivers() {
+  return JSON.parse(localStorage.getItem(DRIVERS_KEY) || '[]');
+}
+
+function addDriver(name) {
+  const cleanName = name.trim();
+  if (!cleanName) return false;
+  const drivers = getDrivers();
+  if (!drivers.includes(cleanName)) {
+    drivers.push(cleanName);
+    localStorage.setItem(DRIVERS_KEY, JSON.stringify(drivers));
+  }
+  return true;
+}
+
+function removeDriver(name) {
+  const drivers = getDrivers().filter(d => d !== name);
+  localStorage.setItem(DRIVERS_KEY, JSON.stringify(drivers));
 }
 
 // Fetch all shift entries (with local storage fallback)
