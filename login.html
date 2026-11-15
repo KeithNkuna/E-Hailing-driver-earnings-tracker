@@ -13,17 +13,15 @@
 
   <div class="container" style="max-width: 400px; margin-top: 40px;">
     <div class="card">
-      <h3 style="margin-bottom: 16px; text-align: center; color: #f8fafc;">Select Your Role</h3>
+      <h3 style="margin-bottom: 16px; text-align: center; color: #f8fafc;">Select Your Profile</h3>
       
       <form id="login-form">
         <label>Who is logging in?</label>
         <select id="login-role" required style="margin-bottom: 16px;">
-          <option value="driver_brother">Driver: Brother (Mon–Fri)</option>
-          <option value="driver_terry">Driver: Terry (Sat–Sun)</option>
           <option value="owner">Owner (Full Management)</option>
         </select>
 
-        <div id="owner-pin-group" style="display: none; margin-bottom: 16px;">
+        <div id="owner-pin-group" style="display: block; margin-bottom: 16px;">
           <label>Owner Access PIN</label>
           <input type="password" id="owner-pin" placeholder="Enter 4-digit PIN" />
         </div>
@@ -33,42 +31,59 @@
     </div>
   </div>
 
+  <script src="app.js"></script>
   <script>
     const roleSelect = document.getElementById('login-role');
     const pinGroup = document.getElementById('owner-pin-group');
 
-    roleSelect.addEventListener('change', (e) => {
-      if (e.target.value === 'owner') {
+    // Load custom drivers created by the Owner
+    function populateUsers() {
+      const drivers = getDrivers();
+      // Add drivers to the top of the dropdown
+      drivers.slice().reverse().forEach(driverName => {
+        const opt = document.createElement('option');
+        opt.value = 'driver:' + driverName;
+        opt.textContent = 'Driver: ' + driverName;
+        roleSelect.insertBefore(opt, roleSelect.firstChild);
+      });
+
+      // Default selection to the first driver if drivers exist, otherwise Owner
+      roleSelect.selectedIndex = 0;
+      togglePinVisibility();
+    }
+
+    function togglePinVisibility() {
+      if (roleSelect.value === 'owner') {
         pinGroup.style.display = 'block';
       } else {
         pinGroup.style.display = 'none';
       }
-    });
+    }
+
+    roleSelect.addEventListener('change', togglePinVisibility);
 
     document.getElementById('login-form').addEventListener('submit', (e) => {
       e.preventDefault();
-      const role = roleSelect.value;
+      const selected = roleSelect.value;
 
-      if (role === 'owner') {
+      if (selected === 'owner') {
         const pin = document.getElementById('owner-pin').value;
-        // Default owner PIN is set to 2026 (you can change this number anytime)
         if (pin !== '2026') {
-          alert('Incorrect Owner PIN! (Default is 2026)');
+          alert('Incorrect Owner PIN!');
           return;
         }
         localStorage.setItem('fleet_user_role', 'owner');
         localStorage.setItem('fleet_logged_driver', 'Owner');
         window.location.href = 'index.html';
-      } else if (role === 'driver_brother') {
+      } else if (selected.startsWith('driver:')) {
+        const driverName = selected.replace('driver:', '');
         localStorage.setItem('fleet_user_role', 'driver');
-        localStorage.setItem('fleet_logged_driver', 'Brother (Mon-Fri)');
-        window.location.href = 'log-shift.html';
-      } else if (role === 'driver_terry') {
-        localStorage.setItem('fleet_user_role', 'driver');
-        localStorage.setItem('fleet_logged_driver', 'Terry (Sat-Sun)');
+        localStorage.setItem('fleet_logged_driver', driverName);
         window.location.href = 'log-shift.html';
       }
     });
+
+    populateUsers();
   </script>
 </body>
 </html>
