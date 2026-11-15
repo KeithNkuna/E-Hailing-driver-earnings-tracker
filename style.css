@@ -178,3 +178,37 @@ th {
   font-size: 11px;
   text-transform: uppercase;
 }
+
+/* Smart Fuel Gauge */
+.fuel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.gauge-track {
+  width: 100%;
+  height: 18px;
+  background: #0f172a;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  padding: 2px;
+}
+
+.gauge-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: width 0.4s ease, background-color 0.4s ease;
+}
+
+.gauge-ticks {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  margin-top: 6px;
+}
