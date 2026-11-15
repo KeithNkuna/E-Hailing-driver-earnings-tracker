@@ -3,6 +3,7 @@ const SUPABASE_URL = 'YOUR_SUPABASE_URL';
 const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY';
 
 const STORAGE_KEY = 'tmn_uber_fleet_logs_v1';
+const TANK_CAPACITY_KEY = 'tmn_tank_capacity_zar';
 
 // Format South African Rand
 function formatZAR(amount) {
@@ -33,7 +34,6 @@ async function saveLog(entry) {
     }
     return true;
   }
-  // Local fallback
   const existing = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
   entry.id = Date.now();
   existing.unshift(entry);
@@ -60,4 +60,44 @@ function filterByTimeframe(logs, timeframe) {
     }
     return true;
   });
+}
+
+// AI Fuel Estimator based on historical Petrol-to-Earnings ratio
+function estimateFuelStatus(logs) {
+  const fullTankZar = Number(localStorage.getItem(TANK_CAPACITY_KEY) || 950);
+
+  let totalGross = 0;
+  let totalPetrol = 0;
+  logs.forEach(l => {
+    totalGross += Number(l.app_earnings || 0) + Number(l.cash_collected || 0);
+    totalPetrol += Number(l.petrol_cost || 0);
+  });
+
+  // Default 28% burn rate until enough shifts are logged to learn your car's actual rate
+  const burnRate = (totalGross > 200 && totalPetrol > 0)
+    ? Math.min(Math.max(totalPetrol / totalGross, 0.12), 0.65)
+    : 0.28;
+
+  // Replay shifts chronologically to track remaining fuel value in tank
+  const chronological = [...logs].reverse();
+  let remainingZar = 0;
+
+  chronological.forEach(l => {
+    const shiftGross = Number(l.app_earnings || 0) + Number(l.cash_collected || 0);
+    const addedPetrol = Number(l.petrol_cost || 0);
+
+    remainingZar += addedPetrol;
+    if (remainingZar > fullTankZar) remainingZar = fullTankZar;
+
+    const estimatedBurn = shiftGross * burnRate;
+    remainingZar = Math.max(0, remainingZar - estimatedBurn);
+  });
+
+  const percentage = Math.min(100, Math.round((remainingZar / fullTankZar) * 100));
+  return {
+    remainingZar,
+    fullTankZar,
+    percentage,
+    burnRatePercent: Math.round(burnRate * 100)
+  };
 }
