@@ -9,19 +9,20 @@
 </head>
 <body>
   <header>
-    <h2>Log Daily Shift</h2>
+    <div style="display:flex; justify-content:space-between; align-items:center; padding: 0 16px;">
+      <h2 style="margin:0;">Log Daily Shift</h2>
+      <a href="login.html" style="color:#ef4444; font-size:13px; text-decoration:none; font-weight:600;">Sign Out</a>
+    </div>
   </header>
 
   <div class="container">
+    <div class="card" style="background:#1e293b; border-color:#3b82f6; margin-bottom:16px;">
+      <p style="margin:0; font-size:13px; color:#93c5fd;">Logged in as: <strong id="driver-display" style="color:#fff;">Driver</strong></p>
+    </div>
+
     <form class="card" id="shift-form">
       <label>Date</label>
       <input type="date" id="shift_date" required />
-
-      <label>Driver</label>
-      <select id="driver_name" required>
-        <option value="Brother (Mon-Fri)">Brother (Mon–Fri)</option>
-        <option value="Terry (Sat-Sun)">Terry (Sat–Sun)</option>
-      </select>
 
       <label>Uber App Fares (R)</label>
       <input type="number" step="0.01" id="app_earnings" placeholder="0.00" required />
@@ -29,36 +30,48 @@
       <label>Cash Collected from Riders (R)</label>
       <input type="number" step="0.01" id="cash_collected" placeholder="0.00" />
 
-      <label>Petrol Spent (R)</label>
+      <label>Petrol Added / Spent (R)</label>
       <input type="number" step="0.01" id="petrol_cost" placeholder="0.00" />
 
       <label>Other Business Expenses - Data / Carwash / Tolls (R)</label>
       <input type="number" step="0.01" id="other_expenses" placeholder="0.00" />
 
       <label>Notes (Optional)</label>
-      <input type="text" id="notes" placeholder="e.g., Full tank fill up at Engen" />
+      <input type="text" id="notes" placeholder="e.g., R500 petrol at Engen" />
 
       <button type="submit">Save Shift Entry</button>
     </form>
   </div>
 
-  <nav>
-    <a href="index.html">Dashboard</a>
+  <nav id="driver-nav">
+    <!-- Restricted Navigation for Drivers -->
     <a href="log-shift.html" class="active">+ Log Shift</a>
-    <a href="history.html">History</a>
-    <a href="drivers.html">Drivers</a>
   </nav>
 
   <script src="app.js"></script>
   <script>
-    // Automatically set today's date on load
+    // Enforce role check
+    const role = localStorage.getItem('fleet_user_role');
+    const assignedDriver = localStorage.getItem('fleet_logged_driver') || 'Brother (Mon-Fri)';
+    
+    document.getElementById('driver-display').textContent = assignedDriver;
+
+    // If owner is viewing log-shift, give them full navigation back
+    if (role === 'owner') {
+      document.getElementById('driver-nav').innerHTML = `
+        <a href="index.html">Dashboard</a>
+        <a href="log-shift.html" class="active">+ Log Shift</a>
+        <a href="history.html">History</a>
+      `;
+    }
+
     document.getElementById('shift_date').valueAsDate = new Date();
 
     document.getElementById('shift-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const entry = {
         shift_date: document.getElementById('shift_date').value,
-        driver_name: document.getElementById('driver_name').value,
+        driver_name: assignedDriver,
         app_earnings: Number(document.getElementById('app_earnings').value || 0),
         cash_collected: Number(document.getElementById('cash_collected').value || 0),
         petrol_cost: Number(document.getElementById('petrol_cost').value || 0),
@@ -69,7 +82,13 @@
       const ok = await saveLog(entry);
       if (ok) {
         alert('Shift saved successfully!');
-        window.location.href = 'index.html';
+        // If driver saved, send them back to login or clear screen. If owner, send to dashboard.
+        if (role === 'owner') {
+          window.location.href = 'index.html';
+        } else {
+          alert('Shift recorded. Thank you!');
+          window.location.href = 'login.html';
+        }
       }
     });
   </script>
